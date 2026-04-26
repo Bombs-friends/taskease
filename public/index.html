@@ -21,7 +21,6 @@
 
         <div class="controls-area" id="auth-controls" aria-live="polite">
             <button id="login-btn" class="text-btn">Log in</button>
-            <button id="signup-btn" class="primary-btn">Sign up</button>
             <button id="logout-btn" class="text-btn" style="display:none">Log out</button>
             <span id="user-label" class="user-label" aria-hidden="false"></span>
         </div>
@@ -75,8 +74,8 @@
                 <input id="login-password" name="password" type="password" required />
             </div>
             <div class="social-row">
-                <button type="button" class="social google">Login with Google</button>
-                <button type="button" class="social apple">Login with Apple</button>
+                <button type="button" id="social-google" class="social google">Login with Google</button>
+                <button type="button" id="social-facebook" class="social facebook">Login with Facebook</button>
             </div>
             <div class="modal-buttons">
                 <button type="button" onclick="closeLoginModal()">Cancel</button>
@@ -86,30 +85,7 @@
     </div>
 </div>
 
-<!-- Signup Modal -->
-<div class="add-task-modal" id="signup-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="signup-title">
-    <div class="modal-content">
-        <h3 id="signup-title">Create Account</h3>
-        <form id="signup-form" class="auth-card">
-            <div class="field">
-                <label for="signup-username">Username</label>
-                <input id="signup-username" name="username" required />
-            </div>
-            <div class="field">
-                <label for="signup-password">Password</label>
-                <input id="signup-password" name="password" type="password" required />
-            </div>
-            <div class="social-row">
-                <button type="button" class="social facebook">Sign up with Facebook</button>
-                <button type="button" class="social google">Sign up with Google</button>
-            </div>
-            <div class="modal-buttons">
-                <button type="button" onclick="closeSignupModal()">Cancel</button>
-                <button type="submit" class="primary-btn">Create Account</button>
-            </div>
-        </form>
-    </div>
-</div>
+<!-- Signup removed from UI; server still exposes /auth/signup for admin/programmatic use -->
 
 <!-- Edit Modal -->
 <div class="add-task-modal" id="edit-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="edit-title">
