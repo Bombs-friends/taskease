@@ -17,6 +17,23 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from public using absolute path
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Simple CORS handling: allow frontend origin if provided, otherwise allow all in development
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowed = process.env.FRONTEND_BASE || process.env.ALLOWED_ORIGIN || '';
+    if (allowed) {
+        // allow configured origin
+        res.setHeader('Access-Control-Allow-Origin', allowed);
+    } else if (process.env.NODE_ENV !== 'production') {
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
 // Optional MongoDB integration: if MONGODB_URI provided, use mongoose models instead of data.json
@@ -135,6 +152,35 @@ function saveData() {
 
 loadData();
 
+// Dev: if no users exist and we're in development, seed a test user to help debugging/login
+if (!useMongo && process.env.NODE_ENV !== 'production') {
+    try {
+        if (users.length === 0) {
+            const pw = 'password';
+            const passwordHash = bcrypt.hashSync(pw, 10);
+            const user = { id: userIdCounter++, username: 'test', passwordHash };
+            users.push(user);
+            saveData();
+            console.log('Seeded dev user: username="test" password="password"');
+        }
+    } catch (err) { console.error('Failed to seed dev user', err); }
+}
+
+if (useMongo && process.env.NODE_ENV !== 'production') {
+    // ensure at least one user exists in Mongo for testing
+    (async () => {
+        try {
+            const count = await UserModel.countDocuments();
+            if (count === 0) {
+                const pw = 'password';
+                const passwordHash = bcrypt.hashSync(pw, 10);
+                await UserModel.create({ username: 'test', passwordHash });
+                console.log('Seeded Mongo dev user: username="test" password="password"');
+            }
+        } catch (err) { console.error('Mongo seed failed', err); }
+    })();
+}
+
 function generateToken(user) {
     return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -167,46 +213,53 @@ function authenticateToken(req, res, next) {
 }
 
 // Auth endpoints
+// Programmatic signup removed to enforce OAuth/admin-only account creation.
 app.post('/auth/signup', (req, res) => {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.status(400).json({ error: 'username and password required' });
-    if (useMongo) {
-        return UserModel.findOne({ username }).then(existing => {
-            if (existing) return res.status(409).json({ error: 'username already exists' });
-            const passwordHash = bcrypt.hashSync(password, 10);
-            return UserModel.create({ username, passwordHash }).then(user => {
-                const token = generateToken({ id: user._id.toString(), username: user.username });
-                res.json({ token, user: { id: user._id.toString(), username: user.username } });
-            });
-        }).catch(err => { console.error(err); return res.status(500).json({ error: 'Server error' }); });
-    }
-    if (users.find(u => u.username === username)) return res.status(409).json({ error: 'username already exists' });
-    const passwordHash = bcrypt.hashSync(password, 10);
-    const user = { id: userIdCounter++, username, passwordHash };
-    users.push(user);
-    saveData();
-    const token = generateToken(user);
-    res.json({ token, user: { id: user.id, username: user.username } });
+    console.warn('Signup attempt blocked: programmatic signup removed');
+    return res.status(404).json({ error: 'Not found' });
 });
 
 app.post('/auth/login', (req, res) => {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'username and password required' });
+    // Log attempt (do NOT log password)
+    console.log(`Login attempt for username=${username} from ${req.ip}`);
     if (useMongo) {
         return UserModel.findOne({ username }).then(user => {
-            if (!user) return res.status(401).json({ error: 'invalid credentials' });
+            if (!user) {
+                console.warn(`Login failed - user not found: ${username}`);
+                const msg = process.env.NODE_ENV === 'production' ? 'invalid credentials' : 'user not found';
+                return res.status(401).json({ error: msg });
+            }
             const ok = bcrypt.compareSync(password, user.passwordHash);
-            if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+            if (!ok) {
+                console.warn(`Login failed - wrong password for user: ${username}`);
+                const msg = process.env.NODE_ENV === 'production' ? 'invalid credentials' : 'wrong password';
+                return res.status(401).json({ error: msg });
+            }
             const token = generateToken({ id: user._id.toString(), username: user.username });
             return res.json({ token, user: { id: user._id.toString(), username: user.username } });
-        }).catch(err => { console.error(err); return res.status(500).json({ error: 'Server error' }); });
+        }).catch(err => { console.error('Login error (mongo):', err); return res.status(500).json({ error: 'Server error' }); });
     }
     const user = users.find(u => u.username === username);
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
-    const ok = bcrypt.compareSync(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    const token = generateToken(user);
-    res.json({ token, user: { id: user.id, username: user.username } });
+    if (!user) {
+        console.warn(`Login failed - user not found: ${username}`);
+        const msg = process.env.NODE_ENV === 'production' ? 'invalid credentials' : 'user not found';
+        return res.status(401).json({ error: msg });
+    }
+    try {
+        const ok = bcrypt.compareSync(password, user.passwordHash);
+        if (!ok) {
+            console.warn(`Login failed - wrong password for user: ${username}`);
+            const msg = process.env.NODE_ENV === 'production' ? 'invalid credentials' : 'wrong password';
+            return res.status(401).json({ error: msg });
+        }
+        const token = generateToken(user);
+        res.json({ token, user: { id: user.id, username: user.username } });
+    } catch (err) {
+        console.error('Login error (file-store):', err);
+        return res.status(500).json({ error: 'Server error' });
+    }
 });
 
 // Verify token endpoint: simple check for client-side validation
@@ -274,14 +327,16 @@ app.post('/tasks', authenticateToken, (req, res) => {
 });
 
 app.delete('/tasks/:id', authenticateToken, (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) return res.status(400).send('Invalid ID');
+    const param = req.params.id;
     if (useMongo) {
-        return TaskModel.findOneAndDelete({ _id: id, userId: req.user.id }).then(doc => {
+        return TaskModel.findById(param).then(doc => {
             if (!doc) return res.status(404).json({ error: 'Task not found or access denied' });
-            return res.status(204).send();
-        }).catch(err => { console.error(err); res.status(500).json({ error: 'Server error' }); });
+            if (String(doc.userId) !== String(req.user.id)) return res.status(404).json({ error: 'Task not found or access denied' });
+            return TaskModel.findByIdAndDelete(param).then(() => res.status(204).send());
+        }).catch(err => { console.error('Task delete error (mongo):', err); res.status(500).json({ error: 'Server error' }); });
     }
+    const id = parseInt(param, 10);
+    if (isNaN(id)) return res.status(400).send('Invalid ID');
     const task = tasks.find(t => t.id === id && t.userId === req.user.id);
     if (!task) return res.status(404).json({ error: 'Task not found or access denied' });
     tasks = tasks.filter(t => !(t.id === id && t.userId === req.user.id));
@@ -290,19 +345,21 @@ app.delete('/tasks/:id', authenticateToken, (req, res) => {
 });
 
 app.put('/tasks/:id', authenticateToken, (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) return res.status(400).send('Invalid ID');
+    const param = req.params.id;
     if (useMongo) {
-        return TaskModel.findOne({ _id: id, userId: req.user.id }).then(task => {
+        return TaskModel.findById(param).then(task => {
             if (!task) return res.status(404).json({ error: 'Task not found or access denied' });
+            if (String(task.userId) !== String(req.user.id)) return res.status(404).json({ error: 'Task not found or access denied' });
             if (req.body.status && ['Pending', 'Done'].includes(req.body.status)) task.status = req.body.status;
             if (req.body.title) task.title = String(req.body.title).trim();
             if (req.body.description !== undefined) task.description = String(req.body.description).trim();
             if (req.body.dueDate !== undefined) task.dueDate = req.body.dueDate;
             if (req.body.dueTime !== undefined) task.dueTime = req.body.dueTime;
             return task.save().then(t => res.json(t));
-        }).catch(err => { console.error(err); res.status(500).json({ error: 'Server error' }); });
+        }).catch(err => { console.error('Task update error (mongo):', err); res.status(500).json({ error: 'Server error' }); });
     }
+    const id = parseInt(param, 10);
+    if (isNaN(id)) return res.status(400).send('Invalid ID');
     const task = tasks.find(t => t.id === id && t.userId === req.user.id);
     if (!task) return res.status(404).json({ error: 'Task not found or access denied' });
     if (req.body.status && ['Pending', 'Done'].includes(req.body.status)) {

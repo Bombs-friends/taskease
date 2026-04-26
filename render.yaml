@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: taskease-backend
+    env: node
+    branch: main
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /auth/verify
+    # Environment variables must be set in the Render dashboard (do not commit secrets):
+    # - MONGODB_URI
+    # - JWT_SECRET
+    # - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (if using Google OAuth)
+    # - FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET (if using Facebook OAuth)
+    # - FRONTEND_BASE or ALLOWED_ORIGIN

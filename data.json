@@ -1,6 +1,12 @@
 {
-  "users": [],
-  "userIdCounter": 1,
+  "users": [
+    {
+      "id": 1,
+      "username": "test",
+      "passwordHash": "$2a$10$GqPbfKihw.C9KhOooFxAyeFo9FfConxwoixQMrJwezyMqzlw9Ss7u"
+    }
+  ],
+  "userIdCounter": 2,
   "tasks": [],
-  "idCounter": 1
+  "idCounter": 2
 }

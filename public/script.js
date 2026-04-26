@@ -10,6 +10,8 @@ const API_BASE = (function(){
     return '';
 })();
 
+console.log('Client API_BASE:', API_BASE || window.location.origin || '');
+
 // Elements
 const mainEl = document.querySelector('main');
 const pendingList = document.getElementById('pending-list');
@@ -109,8 +111,14 @@ loginForm?.addEventListener('submit', async (e)=>{
     const username = (document.getElementById('login-username')?.value || '').trim();
     const password = (document.getElementById('login-password')?.value || '');
     try {
-        const res = await fetch(API_BASE + '/auth/login', { method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
-        if (!res.ok) throw new Error('Login failed');
+        const url = (API_BASE || '') + '/auth/login';
+        console.log('Logging in to', url, 'username=', username);
+        const res = await fetch(url, { method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
+        if (!res.ok) {
+            const errBody = await res.json().catch(()=>null);
+            const msg = errBody && errBody.error ? errBody.error : `Login failed (${res.status})`;
+            throw new Error(msg);
+        }
         const data = await res.json();
         setToken(data.token, data.user);
         closeModal(loginModal);

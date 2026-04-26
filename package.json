@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "migrate": "node scripts/migrate-to-mongo.js",
+    "smoke": "node scripts/smoke-test.js"
   },
   "keywords": ["tasks", "productivity", "management"],
   "author": "",
@@ -21,7 +23,7 @@
     "passport-facebook": "^3.0.0"
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=18"
   }
 }
 
