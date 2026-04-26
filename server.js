@@ -1,12 +1,5 @@
 const express = require('express');
 const path = require('path');
-const app = express();
-const PORT = 3000;
-
-app.use(express.json());
-// Serve static files from the public folder using absolute path
-const express = require('express');
-const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
