@@ -10,20 +10,24 @@
     "migrate": "node scripts/migrate-to-mongo.js",
     "smoke": "node scripts/smoke-test.js"
   },
-  "keywords": ["tasks", "productivity", "management"],
+  "keywords": [
+    "tasks",
+    "productivity",
+    "management"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2",
     "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.4.0",
+    "node-fetch": "^3.3.2",
     "passport": "^0.6.0",
-    "passport-google-oauth20": "^2.0.0",
-    "passport-facebook": "^3.0.0"
+    "passport-facebook": "^3.0.0",
+    "passport-google-oauth20": "^2.0.0"
   },
   "engines": {
     "node": ">=18"
   }
 }
-
