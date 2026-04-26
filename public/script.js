@@ -1,4 +1,4 @@
-const list = document.querySelector('.task-list');
+﻿const list = document.querySelector('.task-list');
 const stats = document.querySelector('.stats');
 const form = document.querySelector('#task-form');
 const searchBar = document.querySelector('.search-bar');
@@ -141,7 +141,7 @@ signupForm?.addEventListener('submit', async (e) => {
 
 updateAuthUI();
 
-// 🔄 Load tasks from server
+// ≡ƒöä Load tasks from server
 async function loadTasks() {
     try {
         if (!authToken) {
@@ -175,7 +175,7 @@ function checkReminders() {
     }
 }
 
-// ➕ Add task (send to backend)
+// Γ₧ò Add task (send to backend)
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -210,7 +210,7 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// ❌ Delete task (from backend)
+// Γ¥î Delete task (from backend)
 async function deleteTask(id) {
     try {
         const res = await fetch(`/tasks/${id}`, {
@@ -227,7 +227,7 @@ async function deleteTask(id) {
     }
 }
 
-// 🔄 Update task status
+// ≡ƒöä Update task status
 async function toggleStatus(id, currentStatus) {
     const newStatus = currentStatus === "Pending" ? "Done" : "Pending";
 
@@ -247,7 +247,7 @@ async function toggleStatus(id, currentStatus) {
     }
 }
 
-// 🎨 Render tasks
+// ≡ƒÄ¿ Render tasks
 function renderTasks(query = '') {
     const q = query.trim().toLowerCase();
     const filtered = q ? tasks.filter(task =>
@@ -385,13 +385,13 @@ editForm?.addEventListener('submit', async (e) => {
 
 // Format deadline with date and time
 function formatDeadline(dueDate, dueTime) {
-    if (!dueDate) return '📅 No deadline';
+    if (!dueDate) return '≡ƒôà No deadline';
     const date = new Date(dueDate).toLocaleDateString();
     if (dueTime) {
         const [hours, minutes] = dueTime.split(':');
-        return `📅 ${date} at ${hours}:${minutes}`;
+        return `≡ƒôà ${date} at ${hours}:${minutes}`;
     }
-    return `📅 ${date}`;
+    return `≡ƒôà ${date}`;
 }
 
 // Get CSS class based on due date and time
@@ -460,7 +460,7 @@ function checkDeadlineNotifications() {
             const timeStr = hoursLeft > 0 
                 ? `${hoursLeft}h ${minutesLeft}m` 
                 : `${minutesLeft}m`;
-            alert(`⏰ Reminder: "${task.title}" is due in ${timeStr}!`);
+            alert(`ΓÅ░ Reminder: "${task.title}" is due in ${timeStr}!`);
             notifiedTasks[task.id] = true;
         }
         
@@ -471,7 +471,7 @@ function checkDeadlineNotifications() {
     });
 }
 
-// 🚀 Load on start
+// ≡ƒÜÇ Load on start
 loadTasks();
 
 // Check notifications every 5 hours (18000000 milliseconds)
