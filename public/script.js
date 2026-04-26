@@ -150,7 +150,17 @@ async function loadTasks() {
             return;
         }
         const res = await fetch('/tasks', { headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()) });
-        if (!res.ok) throw new Error('Failed to load tasks');
+        if (!res.ok) {
+            if (res.status === 401) {
+                // Session expired or invalid token: clear auth and prompt login
+                clearAuth();
+                renderTasks();
+                alert('Session expired or not authenticated. Please log in.');
+                return;
+            }
+            const text = await res.text().catch(()=>null);
+            throw new Error('Failed to load tasks' + (text ? ': ' + text : ''));
+        }
         tasks = await res.json();
         checkReminders();
         renderTasks();
