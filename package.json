@@ -1,0 +1,23 @@
+{
+  "name": "taskease",
+  "version": "1.0.0",
+  "description": "A modern task management app with deadline tracking",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": ["tasks", "productivity", "management"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}
+
