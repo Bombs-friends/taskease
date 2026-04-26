@@ -164,8 +164,54 @@ setInterval(checkReminders, 5*60*60*1000); window.addEventListener('focus', chec
 // Load tasks
 async function loadTasks(){ try{ if (!authToken){ tasks=[]; renderTasks(); return; } const res = await fetch(API_BASE + '/tasks', { headers: Object.assign({ 'Content-Type':'application/json' }, getAuthHeaders()) }); if (!res.ok){ if (res.status===401){ clearAuth(); updateAuthUI(); openModal(loginModal); showBanner('Session expired. Please log in.', 'error'); return; } const t = await res.text().catch(()=>null); throw new Error('Failed to load tasks' + (t?': '+t:'')); } tasks = await res.json(); checkReminders(); renderTasks(); }catch(err){ console.error('Error loading tasks', err); showBanner('Unable to reach server. Check your connection.', 'error'); } }
 
-// Verify token on load
-async function verifyTokenOnLoad(){ if (!authToken){ updateAuthUI(); openModal(loginModal); return; } try{ const res = await fetch(API_BASE + '/auth/verify', { headers: Object.assign({ 'Content-Type':'application/json' }, getAuthHeaders()) }); if (res.ok){ const data = await res.json().catch(()=>null); if (data && data.user && !currentUser) setToken(authToken, data.user); updateAuthUI(); await loadTasks(); } else if (res.status===401){ clearAuth(); updateAuthUI(); openModal(loginModal); showBanner('Session expired. Please log in.', 'error'); } else { showBanner('Unable to verify session: '+res.statusText, 'error'); openModal(loginModal); } } catch(err){ console.error('verify error', err); showBanner('Unable to reach server. Working offline.', 'error'); openModal(loginModal); } }
+// Verify token on load (also accepts token in URL fragment `#token=...&user=...`)
+async function verifyTokenOnLoad(){
+    // If token supplied in URL fragment (OAuth redirect), capture it and clean the URL
+    try {
+        const hash = window.location.hash.replace(/^#/, '');
+        if (hash) {
+            const params = new URLSearchParams(hash);
+            const t = params.get('token');
+            const u = params.get('user');
+            if (t) {
+                setToken(t, u ? { username: decodeURIComponent(u) } : null);
+                // remove token from URL for cleanliness
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    if (!authToken) {
+        updateAuthUI();
+        // show only login UI when not authenticated
+        openModal(loginModal);
+        return;
+    }
+
+    try {
+        const res = await fetch(API_BASE + '/auth/verify', { headers: Object.assign({ 'Content-Type':'application/json' }, getAuthHeaders()) });
+        if (res.ok) {
+            const data = await res.json().catch(()=>null);
+            if (data && data.user && !currentUser) setToken(authToken, data.user);
+            updateAuthUI();
+            await loadTasks();
+            return;
+        }
+        if (res.status === 401) {
+            clearAuth();
+            updateAuthUI();
+            openModal(loginModal);
+            showBanner('Session expired. Please log in.', 'error');
+            return;
+        }
+        showBanner('Unable to verify session: ' + res.statusText, 'error');
+        openModal(loginModal);
+    } catch (err) {
+        console.error('verify error', err);
+        showBanner('Unable to reach server. Working offline.', 'error');
+        openModal(loginModal);
+    }
+}
 
 // Init
 updateAuthUI(); verifyTokenOnLoad();
