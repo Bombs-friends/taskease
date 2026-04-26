@@ -4,7 +4,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const fs = require('fs');
+const DATA_FILE = path.join(__dirname, 'data.json');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -14,11 +16,39 @@ app.use(express.static(path.join(__dirname, 'public')));
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
 // In-memory stores (for demo only). Recommend persistent DB for production.
-let users = []; // { id, username, passwordHash }
+// Persistent simple JSON storage (for demo). Structure: { users:[], userIdCounter, tasks:[], idCounter }
+let users = [];
 let userIdCounter = 1;
-
-let tasks = []; // { id, userId, title, description, dueDate, dueTime, status }
+let tasks = [];
 let idCounter = 1;
+
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const raw = fs.readFileSync(DATA_FILE, 'utf8');
+            const obj = JSON.parse(raw);
+            users = obj.users || [];
+            userIdCounter = obj.userIdCounter || (users.length ? Math.max(...users.map(u=>u.id))+1 : 1);
+            tasks = obj.tasks || [];
+            idCounter = obj.idCounter || (tasks.length ? Math.max(...tasks.map(t=>t.id))+1 : 1);
+        } else {
+            saveData();
+        }
+    } catch (err) {
+        console.error('Failed to load data.json', err);
+    }
+}
+
+function saveData() {
+    try {
+        const obj = { users, userIdCounter, tasks, idCounter };
+        fs.writeFileSync(DATA_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    } catch (err) {
+        console.error('Failed to save data.json', err);
+    }
+}
+
+loadData();
 
 function generateToken(user) {
     return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
@@ -47,6 +77,7 @@ app.post('/auth/signup', (req, res) => {
     const passwordHash = bcrypt.hashSync(password, 10);
     const user = { id: userIdCounter++, username, passwordHash };
     users.push(user);
+    saveData();
     const token = generateToken(user);
     res.json({ token, user: { id: user.id, username: user.username } });
 });
@@ -60,6 +91,11 @@ app.post('/auth/login', (req, res) => {
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
     const token = generateToken(user);
     res.json({ token, user: { id: user.id, username: user.username } });
+});
+
+// Verify token endpoint: simple check for client-side validation
+app.get('/auth/verify', authenticateToken, (req, res) => {
+    res.json({ ok: true, user: { id: req.user.id, username: req.user.username } });
 });
 
 // Protected task routes
@@ -82,6 +118,7 @@ app.post('/tasks', authenticateToken, (req, res) => {
         status: 'Pending'
     };
     tasks.push(task);
+    saveData();
     res.status(201).json(task);
 });
 
@@ -91,6 +128,7 @@ app.delete('/tasks/:id', authenticateToken, (req, res) => {
     const task = tasks.find(t => t.id === id && t.userId === req.user.id);
     if (!task) return res.status(404).json({ error: 'Task not found or access denied' });
     tasks = tasks.filter(t => !(t.id === id && t.userId === req.user.id));
+    saveData();
     res.status(204).send();
 });
 
@@ -106,6 +144,7 @@ app.put('/tasks/:id', authenticateToken, (req, res) => {
     if (req.body.description !== undefined) task.description = String(req.body.description).trim();
     if (req.body.dueDate !== undefined) task.dueDate = req.body.dueDate;
     if (req.body.dueTime !== undefined) task.dueTime = req.body.dueTime;
+    saveData();
     res.json(task);
 });
 
@@ -124,3 +163,10 @@ if (require.main === module) {
         console.log(`Server running at http://localhost:${PORT}`);
     });
 }
+
+// Generic error handler (JSON)
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    if (res.headersSent) return next(err);
+    res.status(500).json({ error: 'Internal server error' });
+});

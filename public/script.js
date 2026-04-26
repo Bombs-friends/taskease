@@ -21,6 +21,33 @@ let notifiedTasks = {}; // Track which tasks have been notified
 let authToken = localStorage.getItem('taskease_token') || null;
 let currentUser = JSON.parse(localStorage.getItem('taskease_user') || 'null');
 
+// Small non-modal banner for user-facing messages (replaces alert)
+function showBanner(message, type = 'info', timeout = 6000) {
+    let existing = document.getElementById('app-banner');
+    if (existing) existing.remove();
+    const banner = document.createElement('div');
+    banner.id = 'app-banner';
+    banner.setAttribute('role', 'alert');
+    banner.className = 'app-banner ' + type;
+    banner.innerText = message;
+    Object.assign(banner.style, {
+        position: 'fixed',
+        top: '1rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: type === 'error' ? 'rgba(200,30,30,0.95)' : 'rgba(40,40,40,0.95)',
+        color: 'white',
+        padding: '0.75rem 1rem',
+        borderRadius: '6px',
+        zIndex: 9999,
+        boxShadow: '0 4px 14px rgba(0,0,0,0.4)'
+    });
+    document.body.appendChild(banner);
+    setTimeout(() => {
+        banner.remove();
+    }, timeout);
+}
+
 function setToken(token, user) {
     authToken = token;
     currentUser = user || null;
@@ -49,11 +76,13 @@ function updateAuthUI() {
         signupBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
         userLabel.innerText = currentUser.username;
+        const fab = document.getElementById('fab-add'); if (fab) fab.style.display = 'flex';
     } else {
         loginBtn.style.display = 'inline-block';
         signupBtn.style.display = 'inline-block';
         logoutBtn.style.display = 'none';
         userLabel.innerText = '';
+        const fab = document.getElementById('fab-add'); if (fab) fab.style.display = 'none';
     }
 }
 
@@ -119,7 +148,7 @@ loginForm?.addEventListener('submit', async (e) => {
         setToken(data.token, data.user);
         closeLoginModal();
         loadTasks();
-    } catch (err) { alert('Login failed: ' + err.message); }
+    } catch (err) { showBanner('Login failed: ' + err.message, 'error'); }
 });
 
 signupForm?.addEventListener('submit', async (e) => {
@@ -136,7 +165,7 @@ signupForm?.addEventListener('submit', async (e) => {
         setToken(data.token, data.user);
         closeSignupModal();
         loadTasks();
-    } catch (err) { alert('Signup failed: ' + err.message); }
+    } catch (err) { showBanner('Signup failed: ' + err.message, 'error'); }
 });
 
 updateAuthUI();
@@ -155,7 +184,7 @@ async function loadTasks() {
                 // Session expired or invalid token: clear auth and prompt login
                 clearAuth();
                 renderTasks();
-                alert('Session expired or not authenticated. Please log in.');
+                showBanner('Session expired or not authenticated. Please log in.', 'error');
                 return;
             }
             const text = await res.text().catch(()=>null);
@@ -166,7 +195,11 @@ async function loadTasks() {
         renderTasks();
     } catch (error) {
         console.error('Error loading tasks:', error);
-        alert('Failed to load tasks. Please check the server.');
+        if (error.name === 'TypeError') {
+            showBanner('Unable to reach server. Check your connection.', 'error');
+        } else {
+            showBanner('Failed to load tasks: ' + (error.message || 'Unknown error'), 'error');
+        }
     }
 }
 
@@ -181,7 +214,7 @@ function checkReminders() {
         return dueDate < today && task.status === 'Pending';
     });
     if (overdueTasks.length > 0) {
-        alert(`You have ${overdueTasks.length} overdue task(s)! Please check your pending tasks.`);
+        showBanner(`You have ${overdueTasks.length} overdue task(s)! Please check your pending tasks.`, 'info');
     }
 }
 
@@ -216,7 +249,7 @@ form.addEventListener('submit', async (e) => {
         loadTasks();
     } catch (error) {
         console.error('Error adding task:', error);
-        alert('Failed to add task: ' + error.message);
+        showBanner('Failed to add task: ' + error.message, 'error');
     }
 });
 
@@ -233,7 +266,7 @@ async function deleteTask(id) {
         loadTasks();
     } catch (error) {
         console.error('Error deleting task:', error);
-        alert('Failed to delete task: ' + error.message);
+        showBanner('Failed to delete task: ' + error.message, 'error');
     }
 }
 
@@ -253,7 +286,7 @@ async function toggleStatus(id, currentStatus) {
         loadTasks();
     } catch (error) {
         console.error('Error updating task:', error);
-        alert('Failed to update task: ' + error.message);
+        showBanner('Failed to update task: ' + error.message, 'error');
     }
 }
 
@@ -390,18 +423,18 @@ editForm?.addEventListener('submit', async (e) => {
         }
         closeEditModal();
         loadTasks();
-    } catch (err) { alert('Edit failed: ' + err.message); }
+    } catch (err) { showBanner('Edit failed: ' + err.message, 'error'); }
 });
 
 // Format deadline with date and time
 function formatDeadline(dueDate, dueTime) {
-    if (!dueDate) return '≡ƒôà No deadline';
+    if (!dueDate) return 'No deadline';
     const date = new Date(dueDate).toLocaleDateString();
     if (dueTime) {
         const [hours, minutes] = dueTime.split(':');
-        return `≡ƒôà ${date} at ${hours}:${minutes}`;
+        return `${date} at ${hours}:${minutes}`;
     }
-    return `≡ƒôà ${date}`;
+    return `${date}`;
 }
 
 // Get CSS class based on due date and time
@@ -482,7 +515,43 @@ function checkDeadlineNotifications() {
 }
 
 // ≡ƒÜÇ Load on start
-loadTasks();
+// Verify token on load to avoid stale-token fetch loops
+async function verifyTokenOnLoad() {
+    if (!authToken) {
+        updateAuthUI();
+        loadTasks();
+        return;
+    }
+
+    try {
+        const res = await fetch('/auth/verify', { headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()) });
+        if (res.ok) {
+            const data = await res.json().catch(()=>null);
+            // Ensure client user is set (in case token was restored from storage)
+            if (data && data.user && !currentUser) setToken(authToken, data.user);
+            updateAuthUI();
+            loadTasks();
+            return;
+        }
+        if (res.status === 401) {
+            clearAuth();
+            updateAuthUI();
+            renderTasks();
+            showBanner('Session expired. Please log in.', 'error');
+            return;
+        }
+        // Other non-OK responses: still attempt to load (may be transient)
+        showBanner('Unable to verify session: ' + res.statusText, 'error');
+        loadTasks();
+    } catch (err) {
+        // Network error: show non-blocking banner and attempt to load cached state
+        console.error('Error verifying token:', err);
+        showBanner('Unable to reach server. Working offline.', 'error');
+        loadTasks();
+    }
+}
+
+verifyTokenOnLoad();
 
 // Check notifications every 5 hours (18000000 milliseconds)
 setInterval(checkDeadlineNotifications, 5 * 60 * 60 * 1000);

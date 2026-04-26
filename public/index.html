@@ -45,12 +45,12 @@
 
 <div class="add-task-modal" id="add-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="add-title">
     <div class="modal-content">
-        <h3 id="add-title">Γ₧ò Add New Task</h3>
+        <h3 id="add-title">➕ Add New Task</h3>
         <form id="task-form">
-            <input type="text" name="title" placeholder="≡ƒô¥ Task title" required>
-            <input type="text" name="description" placeholder="≡ƒôû Description (optional)">
-            <input type="date" name="date" placeholder="≡ƒôà Due date (optional)">
-            <input type="time" name="time" placeholder="≡ƒòÉ Deadline time (optional)">
+            <input type="text" name="title" placeholder="📝 Task title" required>
+            <input type="text" name="description" placeholder="📖 Description (optional)">
+            <input type="date" name="date" placeholder="📅 Due date (optional)">
+            <input type="time" name="time" placeholder="🕐 Deadline time (optional)">
             <div class="modal-buttons">
                 <button type="button" onclick="closeModal()">Cancel</button>
                 <button type="submit">Add Task</button>
@@ -59,20 +59,28 @@
     </div>
 </div>
 
-<button class="fab" onclick="openModal()" aria-label="Add task">+</button>
+<button class="fab" id="fab-add" onclick="openModal()" aria-label="Add task" style="display:none">+</button>
 
 <!-- Login Modal -->
 <div class="add-task-modal" id="login-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="login-title">
     <div class="modal-content">
         <h3 id="login-title">Log In</h3>
-        <form id="login-form">
-            <label for="login-username">Username</label>
-            <input id="login-username" name="username" required />
-            <label for="login-password">Password</label>
-            <input id="login-password" name="password" type="password" required />
+        <form id="login-form" class="auth-card">
+            <div class="field">
+                <label for="login-username">Username</label>
+                <input id="login-username" name="username" required />
+            </div>
+            <div class="field">
+                <label for="login-password">Password</label>
+                <input id="login-password" name="password" type="password" required />
+            </div>
+            <div class="social-row">
+                <button type="button" class="social google">Login with Google</button>
+                <button type="button" class="social apple">Login with Apple</button>
+            </div>
             <div class="modal-buttons">
                 <button type="button" onclick="closeLoginModal()">Cancel</button>
-                <button type="submit">Log In</button>
+                <button type="submit" class="primary-btn">Log In</button>
             </div>
         </form>
     </div>
@@ -81,15 +89,23 @@
 <!-- Signup Modal -->
 <div class="add-task-modal" id="signup-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="signup-title">
     <div class="modal-content">
-        <h3 id="signup-title">Sign Up</h3>
-        <form id="signup-form">
-            <label for="signup-username">Username</label>
-            <input id="signup-username" name="username" required />
-            <label for="signup-password">Password</label>
-            <input id="signup-password" name="password" type="password" required />
+        <h3 id="signup-title">Create Account</h3>
+        <form id="signup-form" class="auth-card">
+            <div class="field">
+                <label for="signup-username">Username</label>
+                <input id="signup-username" name="username" required />
+            </div>
+            <div class="field">
+                <label for="signup-password">Password</label>
+                <input id="signup-password" name="password" type="password" required />
+            </div>
+            <div class="social-row">
+                <button type="button" class="social facebook">Sign up with Facebook</button>
+                <button type="button" class="social google">Sign up with Google</button>
+            </div>
             <div class="modal-buttons">
                 <button type="button" onclick="closeSignupModal()">Cancel</button>
-                <button type="submit">Create Account</button>
+                <button type="submit" class="primary-btn">Create Account</button>
             </div>
         </form>
     </div>
