@@ -1,2 +1,37 @@
 ﻿<!DOCTYPE html>
-<html lang="
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskEase</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>TaskEase</h1>
+
+<div id="auth">
+  <form id="loginForm">
+    <input name="username" placeholder="Username" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <button>Login</button>
+  </form>
+
+  <form id="registerForm">
+    <input name="username" placeholder="New Username" required>
+    <input name="password" type="password" placeholder="New Password" required>
+    <button>Register</button>
+  </form>
+</div>
+
+<h2 id="username"></h2>
+
+<div>
+  <input id="taskInput" placeholder="New Task">
+  <button onclick="addTask()">Add</button>
+</div>
+
+<div id="tasksContainer"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

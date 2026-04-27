@@ -1,4 +1,3 @@
-const fetch = require('node-fetch'); // Note: needs npm i node-fetch if missing
 
 async function testAPI() {
   const BASE = 'https://taskease-app.vercel.app';
