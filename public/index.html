@@ -1,7 +1,6 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>TaskEase</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -9,29 +8,41 @@
 
 <h1>TaskEase</h1>
 
+<!-- AUTH -->
 <div id="auth">
+  <h2>Login</h2>
   <form id="loginForm">
-    <input name="username" placeholder="Username" required>
+    <input name="username" placeholder="Email" required>
     <input name="password" type="password" placeholder="Password" required>
-    <button>Login</button>
+    <button type="submit">Login</button>
   </form>
 
+  <h2>Register</h2>
   <form id="registerForm">
-    <input name="username" placeholder="New Username" required>
-    <input name="password" type="password" placeholder="New Password" required>
-    <button>Register</button>
+    <input name="username" placeholder="Email" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <button type="submit">Register</button>
   </form>
 </div>
 
-<h2 id="username"></h2>
+<!-- APP -->
+<div id="app" style="display:none;">
+  <h2>Welcome: <span id="username"></span></h2>
 
-<div>
-  <input id="taskInput" placeholder="New Task">
-  <button onclick="addTask()">Add</button>
+  <input id="taskInput" placeholder="New task">
+  <button id="addBtn">Add</button>
+
+  <input id="searchInput" placeholder="Search...">
+
+  <h3>Pending</h3>
+  <div id="pending"></div>
+
+  <h3>Completed</h3>
+  <div id="completed"></div>
 </div>
 
-<div id="tasksContainer"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="script.js"></script>
+
 </body>
 </html>
