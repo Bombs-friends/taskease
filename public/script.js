@@ -1,27 +1,23 @@
 console.log("SCRIPT LOADED");
 
-// ✅ SAFE CLIENT (no duplicate error)
-if (!window.mySupabase) {
-  window.mySupabase = window.supabase.createClient(
+if (!window.sbClient) {
+  window.sbClient = window.supabase.createClient(
     "https://xllmemutlawrkgcnywom.supabase.co",
     "sb_publishable_IbYajOwTDSjiVjKYzX2e9Q_JyUO-cP0"
   );
 }
-const supabase = window.mySupabase;
+
+const supabase = window.sbClient;
 
 let tasks = [];
 
-// RUN ON LOAD
 window.onload = () => {
   checkUser();
-
-  document.getElementById("addBtn").onclick = addTask;
-  document.getElementById("searchInput").onkeyup = renderTasks;
 };
 
-// REGISTER
 document.getElementById("registerForm").onsubmit = async (e) => {
   e.preventDefault();
+
   const form = new FormData(e.target);
 
   const { error } = await supabase.auth.signUp({
@@ -30,12 +26,13 @@ document.getElementById("registerForm").onsubmit = async (e) => {
   });
 
   if (error) return alert(error.message);
+
   alert("Registered! Now login.");
 };
 
-// LOGIN
 document.getElementById("loginForm").onsubmit = async (e) => {
   e.preventDefault();
+
   const form = new FormData(e.target);
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -45,24 +42,14 @@ document.getElementById("loginForm").onsubmit = async (e) => {
 
   if (error) return alert(error.message);
 
-  showApp(data.user);
-};
-
-// CHECK USER SESSION
-async function checkUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) showApp(user);
-}
-
-// SHOW APP
-function showApp(user) {
   document.getElementById("auth").style.display = "none";
   document.getElementById("app").style.display = "block";
-  document.getElementById("username").textContent = user.email;
-  loadTasks();
-}
 
-// LOAD TASKS
+  document.getElementById("username").textContent = data.user.email;
+
+  loadTasks();
+};
+
 async function loadTasks() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
@@ -72,16 +59,12 @@ async function loadTasks() {
     .select("*")
     .eq("user_id", user.id);
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+  if (error) return;
 
   tasks = data || [];
   renderTasks();
 }
 
-// ADD TASK
 async function addTask() {
   const input = document.getElementById("taskInput");
   const text = input.value.trim();
@@ -89,17 +72,14 @@ async function addTask() {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("tasks").insert([
+  await supabase.from("tasks").insert([
     { title: text, user_id: user.id, done: false }
   ]);
-
-  if (error) return alert("Error adding task");
 
   input.value = "";
   loadTasks();
 }
 
-// TOGGLE
 async function toggleTask(id, current) {
   await supabase
     .from("tasks")
@@ -109,7 +89,6 @@ async function toggleTask(id, current) {
   loadTasks();
 }
 
-// DELETE
 async function deleteTask(id) {
   await supabase
     .from("tasks")
@@ -119,7 +98,6 @@ async function deleteTask(id) {
   loadTasks();
 }
 
-// RENDER
 function renderTasks() {
   const search = document.getElementById("searchInput").value.toLowerCase();
 
@@ -146,4 +124,15 @@ function renderTasks() {
       if (task.done) completed.appendChild(div);
       else pending.appendChild(div);
     });
+}
+
+async function checkUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("username").textContent = user.email;
+    loadTasks();
+  }
 }
